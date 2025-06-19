@@ -76,15 +76,22 @@ void loop() {
 
 ### Constructor
 ```cpp
-HiBusServo()
+HiBusServo(bool debug = false, int maxRetries = 3)
 ```
 Creates a servo controller instance.
+- `debug`: When set to `true`, enables debug output to Serial for communication details
+- `maxRetries`: Sets the number of retry attempts for communication (default: 3)
 
 ### Setup
 ```cpp
 void begin(HardwareSerial &serial)
 ```
 Initialize communication with the specified hardware serial port.
+
+```cpp
+void setMaxRetries(int retries)
+```
+Sets the number of retry attempts for communication operations.
 
 ### Basic Movement
 ```cpp
@@ -109,12 +116,14 @@ int readTemperature(int servoId)
 ### Configuration
 ```cpp
 void setServoID(int oldID, int newID)
+void setServoMode(int servoId, uint8_t mode, int16_t speed)
 void setAngleLimits(int servoId, int16_t minAngle, int16_t maxAngle)
 void setVinLimits(int servoId, uint16_t minVin, uint16_t maxVin)
 void setTempMaxLimit(int servoId, uint8_t maxTemp)
 void setAngleOffset(int servoId, int8_t offset)
 ```
 - `setServoID`: Change servo ID
+- `setServoMode`: Set servo operating mode (0=position, 1=continuous rotation) and speed
 - `setAngleLimits`: Set angle limits in servo units (0-1000)
 - `setVinLimits`: Set voltage limits in millivolts
 - `setTempMaxLimit`: Set maximum temperature limit in Celsius
@@ -189,11 +198,6 @@ An advanced example that automatically detects all connected servos and controls
 - Communication interference
 - Microcontroller logic level not matched to servo logic level, step up board required
 
-### Debug Mode
-Enable debug mode in the constructor to see communication details:
-```cpp
-HiBusServo servo(true);  // Enable debug output
-```
 
 ## Protocol Details
 
