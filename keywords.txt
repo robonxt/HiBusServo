@@ -1,0 +1,45 @@
+#######################################
+# Syntax Coloring Map For HiBusServo
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+HiBusServo	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+setup	KEYWORD2
+setMaxRetries	KEYWORD2
+moveTo	KEYWORD2
+spinAt	KEYWORD2
+stopMove	KEYWORD2
+readPosition	KEYWORD2
+readVin	KEYWORD2
+readTemperature	KEYWORD2
+setServoID	KEYWORD2
+setServoMode	KEYWORD2
+setAngleLimits	KEYWORD2
+setVinLimits	KEYWORD2
+setTempMaxLimit	KEYWORD2
+setAngleOffset	KEYWORD2
+loadServo	KEYWORD2
+unloadServo	KEYWORD2
+setLEDControl	KEYWORD2
+setLEDErrorControl	KEYWORD2
+getServoMode	KEYWORD2
+getAngleLimits	KEYWORD2
+getVinLimits	KEYWORD2
+getTempMaxLimit	KEYWORD2
+getAngleOffset	KEYWORD2
+getLEDControl	KEYWORD2
+getLEDErrorControl	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+FRAME_HEADER	LITERAL1
