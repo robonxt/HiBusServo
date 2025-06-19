@@ -1,6 +1,6 @@
 # HiBusServo Library
 
-A modern Arduino library for controlling Hiwonder intelligent bus servos.
+A modern Arduino library for controlling Hiwonder serial bus servos.
 
 ## Features
 
@@ -211,6 +211,6 @@ This library implements the Hiwonder intelligent servo communication protocol:
 > This protocol is based on the official Hiwonder documentation.
 
 ## Credits
-- [Hiwonder](https://hiwonder.com) (formerly known as Lewansoul, and even older as Lobot) for the original code and documentation.
+- [Hiwonder](https://www.hiwonder.com) (formerly known as Lewansoul, and even older as Lobot) for the original code and documentation.
 - [madhephaestus](https://github.com/madhephaestus) for their library, pretty sure I designed my OG cpp and h file based on it.
 - [Windsurf](https://windsurf.com) (formerly known as Codeium) for their AI code completion and refactoring tools used to make my modifications into a library.
