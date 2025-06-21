@@ -4,71 +4,64 @@ A modern Arduino library for controlling Hiwonder serial bus servos.
 
 ## Features
 
-- **Position Control**: Move servos to specific angles with precise timing
-- **Continuous Rotation**: Use servos in motor mode with speed control
-- **Status Monitoring**: Read servo position, voltage, and temperature
-- **Parameter Configuration**: Set angle limits, voltage limits, temperature limits
-- **LED Control**: Control servo status and error LEDs
-- **Robust Communication**: Built-in retry mechanism for reliable serial communication
+- **Position Control**: Move servos to specific angles with precise timing.
+- **Continuous Rotation**: Use servos in motor mode with speed control.
+- **Status Monitoring**: Read servo position, voltage, and temperature.
+- **Parameter Configuration**: Set angle limits, voltage limits, and temperature limits.
+- **LED Control**: Control servo status and error LEDs.
+- **Robust Communication**: Built-in retry mechanism for reliable serial communication.
 
 ## Installation
 
 **Note**: This library is not yet available through the Arduino Library Manager. Please use one of the manual installation methods below.
 
 ### Option 1: Manual ZIP Installation (Recommended)
-1. Download this library as a ZIP file
-2. Open Arduino IDE
-3. Go to **Sketch** → **Include Library** → **Add .ZIP Library**
-4. Select the downloaded ZIP file
+1. Download this library as a ZIP file.
+2. Open the Arduino IDE.
+3. Go to **Sketch** → **Include Library** → **Add .ZIP Library**.
+4. Select the downloaded ZIP file.
 
 ### Option 2: Development Installation
-1. Clone or download this repository
-2. Copy the entire folder to your Arduino libraries directory. Default library locations include:
-   - **Windows**: `Documents/Arduino/libraries/`
+1. Clone or download this repository.
+2. Copy the entire folder to your Arduino libraries directory. Default locations include:
+   - **Windows**: `Documents\Arduino\libraries\`
    - **macOS**: `~/Documents/Arduino/libraries/`
    - **Linux**: `~/Arduino/libraries/`
 
 ## Hardware Setup
 
 ### Connections
-- Connect the BusLinker to your Arduino's hardware serial port (e.g., Serial2 TX and RX pins)
-- Connect servo bus cables to the BusLinker's servo ports
-- Provide appropriate power supply to the BusLinker/servos (typically 6V to 8.4V)
-- Ensure common ground between Arduino and BusLinker power supply
+- Connect the BusLinker to your Arduino's hardware serial port (e.g., `Serial2` TX and RX pins).
+- Connect servo bus cables to the BusLinker's servo ports.
+- Provide an appropriate power supply to the BusLinker/servos (typically 6V to 8.4V).
+- Ensure a common ground between the Arduino and BusLinker power supply.
 
 ### Servo Configuration
-- Set each servo to a unique ID (1-253) using Hiwonder's configuration software
-- Note the servo ID for use in your code
+- Set each servo to a unique ID (1-253) using Hiwonder's configuration software.
+- Note the servo ID for use in your code.
 
 ## Quick Start
 
 ```cpp
 #include <HiBusServo.h>
 
-// Create servo controller instance
+// Create a servo controller instance.
 HiBusServo servo;
 
 void setup() {
-    Serial.begin(115200);
-    
-    // Initialize servo communication on Serial2
-    servo.begin(Serial2);
-    
-    // Move servo ID 1 to 0 degrees over 1 second
-    servo.moveTo(1, 0.0, 1000);
+  // Initialize communication with the servos on Serial2.
+  // The library uses a fixed baud rate of 115200.
+  servo.begin(Serial2);
 }
 
 void loop() {
-    // Read current position
-    int position = servo.readPosition(1);
-    if (position >= 0) {
-        float degrees = (position - 500) * (120.0 / 500.0);
-        Serial.print("Position: ");
-        Serial.print(degrees, 1);
-        Serial.println("°");
-    }
-    
-    delay(100);
+  // Move servo 1 to the -90 degree position over half a second.
+  servo.moveTo(1, -90.0, 500);
+  delay(1000); // Wait 1 second.
+
+  // Move servo 1 to the 90 degree position over half a second.
+  servo.moveTo(1, 90.0, 500);
+  delay(1000); // Wait 1 second.
 }
 ```
 
@@ -194,7 +187,6 @@ An advanced example that automatically detects all connected servos and controls
 - Ensure adequate power supply (min 4.5V to max 14V)
 - Check baud rate (should be 115200)
 - Servo may be disconnected
-- Wrong servo ID
 - Communication interference
 - Microcontroller logic level not matched to servo logic level, step up board required
 
@@ -206,11 +198,11 @@ This library implements the Hiwonder intelligent servo communication protocol:
 - **Frame Format**: Header(2) + ID(1) + Length(1) + Command(1) + Data(0-N) + Checksum(1)
 - **Header**: 0x55 0x55
 - **ID Range**: 0-253 (0x00-0xFD), with 254 (0xFE) as broadcast ID
-- **Length**: Equal to the data length (including the Length byte itself)
+- **Length**: The total number of bytes in the packet from the `ID` field to the last parameter byte. Formula: `Length = 3 + number of parameter bytes`.
 - **Command Types**:
   - Write commands (typically with parameters)
   - Read commands (typically without parameters, returns data)
-- **Checksum**: `Checksum = ~(ID + Length + Cmd + Prm1 + ... + PrmN)` where ~ is negation
+- **Checksum**: The bitwise NOT of the sum of all bytes from `ID` to the last parameter byte.
 
 > This protocol is based on the official Hiwonder documentation.
 
