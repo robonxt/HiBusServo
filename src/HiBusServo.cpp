@@ -124,12 +124,18 @@ int HiBusServo::readVin(int servoId)
  */
 int HiBusServo::readTemperature(int servoId)
 {
-    uint8_t data[2];
-    if (_read_servo_param(servoId, CMD_TEMP_READ, data, 1))
+    int temperature = -1;
+    for (int i = 0; i < _maxRetries; ++i)
     {
-        return data[0];
+        uint8_t data[1];
+        if (_read_servo_param(servoId, CMD_TEMP_READ, data, 1))
+        {
+            temperature = data[0];
+            break;
+        }
+        delayMicroseconds(500);
     }
-    return -1;
+    return temperature;
 }
 
 // Servo configuration
@@ -269,12 +275,16 @@ void HiBusServo::setLEDErrorControl(int servoId, bool errorLedOn)
  */
 bool HiBusServo::getServoMode(int servoId, uint8_t &mode, int16_t &speed)
 {
-    uint8_t data[4];
-    if (_read_servo_param(servoId, CMD_OR_MOTOR_MODE_READ, data, 4))
+    for (int i = 0; i < _maxRetries; ++i)
     {
-        mode = data[0];
-        speed = _bytes_to_word(data[3], data[2]);
-        return true;
+        uint8_t data[4];
+        if (_read_servo_param(servoId, CMD_OR_MOTOR_MODE_READ, data, 4))
+        {
+            mode = data[0];
+            speed = _bytes_to_word(data[3], data[2]);
+            return true;
+        }
+        delayMicroseconds(500);
     }
     return false;
 }
@@ -289,12 +299,16 @@ bool HiBusServo::getServoMode(int servoId, uint8_t &mode, int16_t &speed)
  */
 bool HiBusServo::getAngleLimits(int servoId, int16_t &minAngle, int16_t &maxAngle)
 {
-    uint8_t data[4];
-    if (_read_servo_param(servoId, CMD_ANGLE_LIMIT_READ, data, 4))
+    for (int i = 0; i < _maxRetries; ++i)
     {
-        minAngle = _bytes_to_word(data[1], data[0]);
-        maxAngle = _bytes_to_word(data[3], data[2]);
-        return true;
+        uint8_t data[4];
+        if (_read_servo_param(servoId, CMD_ANGLE_LIMIT_READ, data, 4))
+        {
+            minAngle = _bytes_to_word(data[1], data[0]);
+            maxAngle = _bytes_to_word(data[3], data[2]);
+            return true;
+        }
+        delayMicroseconds(500);
     }
     return false;
 }
@@ -309,12 +323,16 @@ bool HiBusServo::getAngleLimits(int servoId, int16_t &minAngle, int16_t &maxAngl
  */
 bool HiBusServo::getVinLimits(int servoId, uint16_t &minVin, uint16_t &maxVin)
 {
-    uint8_t data[4];
-    if (_read_servo_param(servoId, CMD_VIN_LIMIT_READ, data, 4))
+    for (int i = 0; i < _maxRetries; ++i)
     {
-        minVin = _bytes_to_word(data[1], data[0]);
-        maxVin = _bytes_to_word(data[3], data[2]);
-        return true;
+        uint8_t data[4];
+        if (_read_servo_param(servoId, CMD_VIN_LIMIT_READ, data, 4))
+        {
+            minVin = _bytes_to_word(data[1], data[0]);
+            maxVin = _bytes_to_word(data[3], data[2]);
+            return true;
+        }
+        delayMicroseconds(500);
     }
     return false;
 }
@@ -328,11 +346,15 @@ bool HiBusServo::getVinLimits(int servoId, uint16_t &minVin, uint16_t &maxVin)
  */
 bool HiBusServo::getTempMaxLimit(int servoId, uint8_t &maxTemp)
 {
-    uint8_t data[1];
-    if (_read_servo_param(servoId, CMD_TEMP_MAX_LIMIT_READ, data, 1))
+    for (int i = 0; i < _maxRetries; ++i)
     {
-        maxTemp = data[0];
-        return true;
+        uint8_t data[1];
+        if (_read_servo_param(servoId, CMD_TEMP_MAX_LIMIT_READ, data, 1))
+        {
+            maxTemp = data[0];
+            return true;
+        }
+        delayMicroseconds(500);
     }
     return false;
 }
@@ -346,11 +368,15 @@ bool HiBusServo::getTempMaxLimit(int servoId, uint8_t &maxTemp)
  */
 bool HiBusServo::getAngleOffset(int servoId, int8_t &offset)
 {
-    uint8_t data[1];
-    if (_read_servo_param(servoId, CMD_ANGLE_OFFSET_READ, data, 1))
+    for (int i = 0; i < _maxRetries; ++i)
     {
-        offset = static_cast<int8_t>(data[0]);
-        return true;
+        uint8_t data[1];
+        if (_read_servo_param(servoId, CMD_ANGLE_OFFSET_READ, data, 1))
+        {
+            offset = static_cast<int8_t>(data[0]);
+            return true;
+        }
+        delayMicroseconds(500);
     }
     return false;
 }
@@ -364,11 +390,15 @@ bool HiBusServo::getAngleOffset(int servoId, int8_t &offset)
  */
 bool HiBusServo::getLEDControl(int servoId, bool &ledOn)
 {
-    uint8_t data[1];
-    if (_read_servo_param(servoId, CMD_LED_CTRL_READ, data, 1))
+    for (int i = 0; i < _maxRetries; ++i)
     {
-        ledOn = (data[0] != 0);
-        return true;
+        uint8_t data[1];
+        if (_read_servo_param(servoId, CMD_LED_CTRL_READ, data, 1))
+        {
+            ledOn = (data[0] != 0);
+            return true;
+        }
+        delayMicroseconds(500);
     }
     return false;
 }
@@ -382,11 +412,15 @@ bool HiBusServo::getLEDControl(int servoId, bool &ledOn)
  */
 bool HiBusServo::getLEDErrorControl(int servoId, bool &errorLedOn)
 {
-    uint8_t data[1];
-    if (_read_servo_param(servoId, CMD_LED_ERROR_READ, data, 1))
+    for (int i = 0; i < _maxRetries; ++i)
     {
-        errorLedOn = (data[0] != 0);
-        return true;
+        uint8_t data[1];
+        if (_read_servo_param(servoId, CMD_LED_ERROR_READ, data, 1))
+        {
+            errorLedOn = (data[0] != 0);
+            return true;
+        }
+        delayMicroseconds(500);
     }
     return false;
 }
