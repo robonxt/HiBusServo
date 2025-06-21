@@ -69,10 +69,10 @@ void loop() {
 
 ### Constructor
 ```cpp
-HiBusServo(bool debug = false, int maxRetries = 3)
+HiBusServo(int maxRetries = 3)
 ```
 Creates a servo controller instance.
-- `debug`: When set to `true`, enables debug output to Serial for communication details
+
 - `maxRetries`: Sets the number of retry attempts for communication (default: 3)
 
 ### Setup
@@ -92,7 +92,7 @@ void moveTo(int servoId, float destination, uint16_t time = 200)
 void spinAt(int servoId, float velocity)
 void stopMove(int servoId)
 ```
-- `moveTo`: Move to angle in degrees (-120° to +120°, 0° = center)
+- `moveTo`: Move to angle in degrees (-120° to +120°, 0° = center). This function automatically sets the servo to position mode.
 - `spinAt`: Continuous rotation (-100 to +100, negative = clockwise)
 - `stopMove`: Stop any current movement
 
@@ -102,9 +102,9 @@ int readPosition(int servoId)
 int readVin(int servoId)
 int readTemperature(int servoId)
 ```
-- `readPosition`: Current position in servo units (0-1000)
-- `readVin`: Supply voltage in millivolts
-- `readTemperature`: Temperature in Celsius
+- `readPosition`: Current position in servo units (0-1000). Returns -1 on failure.
+- `readVin`: Supply voltage in millivolts. Returns -2048 on failure.
+- `readTemperature`: Temperature in Celsius. Returns -1 on failure.
 
 ### Configuration
 ```cpp
@@ -117,7 +117,7 @@ void setAngleOffset(int servoId, int8_t offset)
 ```
 - `setServoID`: Change servo ID
 - `setServoMode`: Set servo operating mode (0=position, 1=continuous rotation) and speed
-- `setAngleLimits`: Set angle limits in servo units (0-1000)
+- `setAngleLimits`: Set angle limits in servo units (0-1000).
 - `setVinLimits`: Set voltage limits in millivolts
 - `setTempMaxLimit`: Set maximum temperature limit in Celsius
 - `setAngleOffset`: Set angle offset calibration (-125 to +125)
@@ -146,7 +146,7 @@ bool getLEDControl(int servoId, bool &ledOn)
 bool getLEDErrorControl(int servoId, bool &errorLedOn)
 ```
 - `getServoMode`: Read current mode (0=servo, 1=motor) and speed
-- `getAngleLimits`: Read min/max angle limits in servo units
+- `getAngleLimits`: Read min/max angle limits in servo units (0-1000).
 - `getVinLimits`: Read voltage limits in millivolts
 - `getTempMaxLimit`: Read maximum temperature limit in Celsius
 - `getAngleOffset`: Read angle calibration offset (-125 to +125)

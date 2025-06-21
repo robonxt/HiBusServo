@@ -6,7 +6,7 @@
 class HiBusServo
 {
 public:
-    HiBusServo(bool debug = false, int maxRetries = 3);
+    HiBusServo(int maxRetries = 3);
     
     void begin(HardwareSerial &serial);
     void setMaxRetries(int retries);
@@ -45,7 +45,7 @@ public:
     bool getLEDErrorControl(int servoId, bool &errorLedOn);
 
 private:
-    bool _debug;
+
     int _maxRetries;
     HardwareSerial *_serialPort;
     
