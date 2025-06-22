@@ -48,145 +48,154 @@ A modern Arduino library for controlling Hiwonder serial bus servos.
 ```cpp
 #include <HiBusServo.h>
 
-// Create a servo controller instance with default retry count (3).
-// You can specify a custom retry count: HiBusServo servo(5);
-HiBusServo servo;
+// Create a servo controller instance with default maxRetries (3)
+HiBusServo servo; // or HiBusServo servo(5); // for custom retry count
 
 void setup() {
-  // Initialize communication with the servos on Serial2.
-  // The library uses a fixed baud rate of 115200.
+  Serial.begin(9600);  // For debugging output
+  
+  // Initialize communication with the servos on Serial2
+  // The library uses a fixed baud rate of 115200
   servo.begin(Serial2);
+  
+  // Optionally set max retries
+  servo.setMaxRetries(5);
 }
 
 void loop() {
-  // Move servo 1 to the -90 degree position over half a second.
-  servo.moveTo(1, -90.0, 500);
-  delay(1000); // Wait 1 second.
-
-  // Move servo 1 to the 90 degree position over half a second.
-  servo.moveTo(1, 90.0, 500);
-  delay(1000); // Wait 1 second.
+  // Move servo ID 1 to 90 degrees over 500ms
+  servo.moveTo(1, 90, 500);
+  delay(600);  // Wait for movement to complete
+  
+  // Read and print servo status
+  int pos = servo.readPosition(1);
+  int vin = servo.readVin(1);
+  int temp = servo.readTemperature(1);
+  
+  Serial.print("Position: ");
+  Serial.print(pos);
+  Serial.print(" | Voltage: ");
+  Serial.print(vin);
+  Serial.print("mV | Temp: ");
+  Serial.print(temp);
+  Serial.println("°C");
+  
+  // Spin servo in wheel mode
+  servo.spinAt(1, 50);          // Spin at speed 50 (automatically sets wheel mode)
+  delay(2000);                  // Spin for 2 seconds
+  servo.stopMove(1);            // Stop the servo
+  delay(1000);                  // Stop before looping again.
 }
 ```
 
 ## API Reference
 
-### Initialization
+### Constructor & Setup
 
 ```cpp
 HiBusServo(int maxRetries = 3);
 ```
-Constructor for the HiBusServo object. Optionally specify the maximum number of retries for read operations.
+Create a servo controller. `maxRetries` sets the retry count for communication (default 3).
 
 ```cpp
 void begin(HardwareSerial &serial);
 ```
-Initialize the serial port for communication with the servos. The baud rate is fixed at 115200.
+Initialize communication with the servos (e.g., `Serial2`).
 
 ```cpp
 void setMaxRetries(int retries);
 ```
-Set the maximum number of retries for read operations.
+Change the retry count after construction.
 
-### Movement Control
-
-```cpp
-void moveTo(int servoId, float angle, int time);
-```
-Move the servo to a specific angle over a specified time. Angle range is -120° to 120°. Time is in milliseconds.
+### Basic Movement
 
 ```cpp
-void moveToRaw(int servoId, int position, int time);
+void moveTo(int servoId, float destination, uint16_t time = 200);
 ```
-Move the servo to a raw position (0-1000) over a specified time. Time is in milliseconds.
+Move servo to angle (`-120` to `120` degrees) in `time` ms.
 
 ```cpp
-void setVelocity(int servoId, int velocity);
+void spinAt(int servoId, float velocity);
 ```
-Set the velocity for continuous rotation mode. Range is -100 to 100, where 0 stops the servo.
+Spin servo in wheel mode (`-100` to `100` speed).
+
+```cpp
+void stopMove(int servoId);
+```
+Stop servo movement.
 
 ### Status Reading
 
 ```cpp
-bool readPosition(int servoId, float &angle);
+int readPosition(int servoId);
 ```
-Read the current angle of the servo in degrees. Returns true if successful.
+Get current position in servo units (0-1000) or -1 on error. Note: This returns raw servo units, not degrees.
 
 ```cpp
-bool readPositionRaw(int servoId, int &position);
+int readVin(int servoId);
 ```
-Read the current raw position (0-1000) of the servo. Returns true if successful.
+Get input voltage (mV) or -2048 on error.
 
 ```cpp
-bool readVoltage(int servoId, float &voltage);
+int readTemperature(int servoId);
 ```
-Read the current voltage of the servo in volts. Returns true if successful.
-
-```cpp
-bool readTemperature(int servoId, int &temperature);
-```
-Read the current temperature of the servo in degrees Celsius. Returns true if successful.
-
-```cpp
-bool isConnected(int servoId);
-```
-Check if a servo with the specified ID is connected. Returns true if the servo is connected.
+Get temperature (°C) or -1 on error.
 
 ### Servo Configuration
 
 ```cpp
-bool setServoMode(int servoId, uint8_t mode, int16_t speed = 0);
+void setServoID(int oldID, int newID);
 ```
-Set the servo operating mode. Mode 0 is position control, mode 1 is continuous rotation. Speed parameter is used for continuous rotation mode. Returns true if successful.
+Change servo ID.
 
 ```cpp
-bool setAngleLimits(int servoId, int16_t minAngle, int16_t maxAngle);
+void setServoMode(int servoId, uint8_t mode, int16_t speed);
 ```
-Set the minimum and maximum angle limits in servo units (0-1000). Returns true if successful.
+Set mode: `0` (position), `1` (wheel).
 
 ```cpp
-bool setVinLimits(int servoId, uint16_t minVin, uint16_t maxVin);
+void setAngleLimits(int servoId, int16_t minAngle, int16_t maxAngle);
 ```
-Set the minimum and maximum voltage limits in millivolts. Returns true if successful.
+Set angle limits in servo units (0-1000). Note: These are raw servo units, not degrees.
 
 ```cpp
-bool setTempMaxLimit(int servoId, uint8_t maxTemp);
+void setVinLimits(int servoId, uint16_t minVin, uint16_t maxVin);
 ```
-Set the maximum temperature limit in degrees Celsius. Returns true if successful.
+Set voltage limits (mV).
 
 ```cpp
-bool setAngleOffset(int servoId, int8_t offset);
+void setTempMaxLimit(int servoId, uint8_t maxTemp);
 ```
-Set the angle offset calibration value (-125 to +125). Returns true if successful.
+Set max temperature (°C).
 
 ```cpp
-bool setID(int servoId, int newId);
+void setAngleOffset(int servoId, int8_t offset);
 ```
-Change the ID of a servo. Returns true if successful.
+Set angle offset.
 
 ### Servo Control
 
 ```cpp
 void loadServo(int servoId);
 ```
-Enable the servo motor. When loaded, the servo holds its position and responds to movement commands.
+Enable torque. When loaded, the servo holds its position and responds to movement commands.
 
 ```cpp
 void unloadServo(int servoId);
 ```
-Disable the servo motor. When unloaded, the servo can be moved freely by hand and consumes less power.
+Disable torque. When unloaded, the servo can be moved freely by hand and consumes less power.
 
 ```cpp
-bool setLEDControl(int servoId, bool ledOn);
+void setLEDControl(int servoId, bool ledOn);
 ```
-Control the servo status LED. Set to true to turn the LED on, false to turn it off. Returns true if successful.
+Control the servo status LED. Set to true to turn the LED on, false to turn it off.
 
 ```cpp
-bool setLEDErrorControl(int servoId, bool errorLedOn);
+void setLEDErrorControl(int servoId, bool errorLedOn);
 ```
-Control the servo error LED indication. Set to true to enable error LED indication, false to disable. Returns true if successful.
+Control the servo error LED indication. Set to true to enable error LED indication, false to disable.
 
-### Configuration Reading
+### Parameter Getters
 
 ```cpp
 bool getServoMode(int servoId, uint8_t &mode, int16_t &speed);
@@ -222,6 +231,7 @@ Read the current status LED setting. Returns true if successful.
 bool getLEDErrorControl(int servoId, bool &errorLedOn);
 ```
 Read the current error LED indication setting. Returns true if successful.
+
 
 ## Examples
 
