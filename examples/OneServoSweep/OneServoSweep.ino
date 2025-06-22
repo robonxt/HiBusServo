@@ -54,13 +54,13 @@ void show_status() {
         Serial.println("°");
     }
     
-    if (voltage > -2000) {
+    if (voltage != -2048) {
         Serial.print("Voltage: ");
         Serial.print(voltage / 1000.0, 1);
         Serial.println("V");
     }
     
-    if (temp >= 0) {
+    if (temp != -1) {
         Serial.print("Temperature: ");
         Serial.print(temp);
         Serial.println("°C");

@@ -68,7 +68,7 @@ void loop() {
     delay(2000);
 }
 
-// Scan for connected servos by trying to read position from each ID
+// Scan for connected servos by trying to read position and voltage from each ID
 void scan_for_servos() {
     servo_count = 0;
     
@@ -81,11 +81,32 @@ void scan_for_servos() {
         int pos = servo.readPosition(id);
         
         if (pos >= 0) {
+            // Servo found via position reading
             found_servos[servo_count] = id;
             servo_count++;
-            Serial.println("✓ Found!");
+            Serial.println("✓ Found! (position)");
         } else {
-            Serial.println("✗");
+            // If position read fails, try reading voltage as a fallback
+            int voltage = servo.readVin(id);
+            
+            if (voltage != -2048) {
+                // Servo found via voltage reading
+                found_servos[servo_count] = id;
+                servo_count++;
+                Serial.println("✓ Found! (voltage)");
+            } else {
+                // Try temperature as a last resort
+                int temp = servo.readTemperature(id);
+                
+                if (temp != -1) {
+                    // Servo found via temperature reading
+                    found_servos[servo_count] = id;
+                    servo_count++;
+                    Serial.println("✓ Found! (temperature)");
+                } else {
+                    Serial.println("✗ Not found");
+                }
+            }
         }
         
         delay(50); // Small delay between scans
@@ -119,12 +140,12 @@ void show_all_status() {
             Serial.print("° ");
         }
         
-        if (voltage > -2000) {
+        if (voltage != -2048) {
             Serial.print(voltage / 1000.0, 1);
             Serial.print("V ");
         }
         
-        if (temp >= 0) {
+        if (temp != -1) {
             Serial.print(temp);
             Serial.print("°C");
         }
