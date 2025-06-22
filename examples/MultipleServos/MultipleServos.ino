@@ -20,11 +20,12 @@ int servo_count = 0;              // Number of servos found
 
 void setup() {
     Serial.begin(115200);
+    delay(1000);
     Serial.println("Multiple Servos Demo");
     Serial.println("Scanning for connected servos...");
     
     servo.begin(Serial2);
-    delay(100);
+    delay(1000);
     
     // Scan for connected servos
     scan_for_servos();
