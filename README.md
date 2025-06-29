@@ -16,7 +16,7 @@ A modern library for controlling Hiwonder serial bus servos. Supports position c
 ## Credits
 Created by [robonxt](https://github.com/robonxt)
 
-Thanks to (In no perticular order):
+Thanks to (In no particular order):
 - [Hiwonder](https://www.hiwonder.com) (formerly known as Lewansoul, and even older as Lobot) for the original code and documentation.
 - [madhephaestus](https://github.com/madhephaestus) for the OG lx16a Arduino library (used as reference).
 - [ethanlipson](https://github.com/ethanlipson) and [maximkulkin](https://github.com/maximkulkin) for Python libraries (used as references)
