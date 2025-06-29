@@ -1,5 +1,5 @@
-#ifndef test_h
-#define test_h
+#ifndef HiBusServo_h
+#define HiBusServo_h
 #include "Arduino.h"
 const uint8_t SERVO_MOVE_TIME_WRITE = 1;
 const uint8_t SERVO_MOVE_TIME_READ = 2;

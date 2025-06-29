@@ -1,207 +1,100 @@
-/*
- * ReadAllValues.ino - Example for HiBusServo library
- * 
- * This example reads all possible values from a single servo (ID 1) and prints them
- * to the Serial monitor. It's useful for verifying communication and checking that
- * all values are being read correctly with the proper data types.
- * 
- * Created: 2024-06-28
- * By: HiBusServo Library
- */
+#include <HiBusServo.h>
 
-#include "test.h"
-
-// Enable debug output for the servo library
-// Comment this line to disable debug output
-#define DEBUG_SERVO
-
-// Create a servo controller instance with default settings
-HiBusServo servo;
-
-// Servo ID to read from (change if needed)
+HiBusServo myServo(Serial2);
 const uint8_t SERVO_ID = 1;
 
-// Variables to store read values
-uint8_t mode, maxTemp;
-int16_t speed, minAngle, maxAngle, position, vin, minVin, maxVin;
-int8_t temp, angleOffset;
-bool ledOn, errorLedOn;
-
-// Error counter
-uint8_t readErrors = 0;
-const uint8_t MAX_RETRIES = 3;
-
 void setup() {
-  // Start serial for debugging
   Serial.begin(115200);
-  while (!Serial) {
-    ;  // wait for serial port to connect
-  }
-
-// Wait for serial monitor to be ready
-#ifdef DEBUG_SERVO
-  while (!Serial) {
-    ;  // wait for serial port to connect
-  }
-  delay(1000);
-#endif
-
-  Serial.println(F("HiBusServo - Read All Values Example"));
-  Serial.println(F("==================================="));
-
-  // Initialize communication with the servos on Serial2
-  // Note: The begin() method will initialize the serial port
-  servo.begin(Serial2);
-
-  // Set a longer timeout for reading
-  Serial2.setTimeout(100);
-
-  // Set max retries for more reliable communication
-  servo.setMaxRetries(MAX_RETRIES);
-
-  Serial.print(F("Reading values from servo ID: "));
-  Serial.println(SERVO_ID);
-  Serial.println();
+  myServo.begin(115200);
+  delay(2000);
+  Serial.println("--- Value Reading ---");
 }
 
+
 void loop() {
-  // Clear the screen for better readability
-  Serial.println("\n\n\n\n\n\n\n\n\n\n");  // Add some newlines to clear the screen
-  Serial.println(F("=== Reading Servo Values ==="));
+  Serial.println("\n--- Reading All Values from Servo ID: " + String(SERVO_ID) + " ---");
+  printAllServoData(SERVO_ID);
 
-  // Reset error counter
-  readErrors = 0;
+  Serial.println("\n---------------------------------");
+  delay(5000);  // Wait 5 seconds before repeating the check
+}
 
-  // Read position (0-1000, where 500 is center)
-  position = servo.readPosition(SERVO_ID);
-  if (position == -1) {
-    Serial.println(F("Error reading position!"));
-    readErrors++;
+void printAllServoData(uint8_t id) {
+  // --- Position ---
+  int16_t pos_raw = myServo.getPosition(id);
+  if (pos_raw != -1) {
+    Serial.println("Position (raw): " + String(pos_raw));
   } else {
-    Serial.print(F("Position: "));
-    Serial.print(position);
-    Serial.print(F(" ("));
-    Serial.print((position - 500) * 0.24f, 1);  // Convert to degrees (-120 to 120)
-    Serial.println(F("°)"));
+    Serial.println("Position (raw): TIMEOUT/ERROR");
   }
 
-  // Read input voltage (mV)
-  // Note: readVin returns -2048 on error
-  vin = servo.readVin(SERVO_ID);
-  if (vin == -2048) {
-    Serial.println(F("Error reading input voltage!"));
-    readErrors++;
+  float pos_deg = myServo.getPositionInDegrees(id);
+  if (pos_deg != -999.0) {
+    Serial.println("Position (deg): " + String(pos_deg));
   } else {
-    Serial.print(F("Input Voltage: "));
-    Serial.print(vin);
-    Serial.println(F(" mV"));
+    Serial.println("Position (deg): TIMEOUT/ERROR");
   }
 
-  // Read temperature (°C)
-  temp = servo.readTemperature(SERVO_ID);
-  if (temp == -1) {
-    Serial.println(F("Error reading temperature!"));
-    readErrors++;
+  // --- Physical State ---
+  int16_t vin = myServo.getVoltage(id);
+  if (vin != -1) {
+    Serial.println("Voltage: " + String(vin) + " mV");
   } else {
-    Serial.print(F("Temperature: "));
-    Serial.print(temp);
-    Serial.println(F("°C"));
+    Serial.println("Voltage: TIMEOUT/ERROR");
   }
 
-  // Read servo mode and speed
-  if (!servo.getServoMode(SERVO_ID, mode, speed)) {
-    Serial.println(F("Error reading servo mode!"));
-    readErrors++;
+  int8_t temp = myServo.getTemperature(id);
+  if (temp != -1) {
+    Serial.println("Temperature: " + String(temp) + " C");
   } else {
-    Serial.print(F("Mode: "));
-    Serial.print(mode == 0 ? "Position" : "Speed");
-    Serial.print(F(" | Speed: "));
-    Serial.println(speed);
+    Serial.println("Temperature: TIMEOUT/ERROR");
   }
 
-  // Read angle limits
-  if (!servo.getAngleLimits(SERVO_ID, minAngle, maxAngle)) {
-    Serial.println(F("Error reading angle limits!"));
-    readErrors++;
+  // --- Mode ---
+  uint8_t mode;
+  int16_t speed;
+  if (myServo.getMode(id, mode, speed)) {
+    Serial.print("Mode: " + String(mode));
+    if (mode == 0) Serial.println(" (Servo Mode)");
+    if (mode == 1) Serial.println(" (Motor Mode), Speed: " + String(speed));
   } else {
-    Serial.print(F("Angle Limits: "));
-    Serial.print(minAngle);
-    Serial.print(F(" to "));
-    Serial.print(maxAngle);
-    Serial.print(F(" ("));
-    Serial.print((minAngle - 500) * 0.24f, 1);
-    Serial.print(F("° to "));
-    Serial.print((maxAngle - 500) * 0.24f, 1);
-    Serial.println(F("°)"));
+    Serial.println("Mode: TIMEOUT/ERROR");
   }
 
-  // Read voltage limits
-  // Note: getVinLimits returns true on success, false on failure
-  // The values are passed by reference and will be updated if successful
-  uint16_t minVoltage, maxVoltage;
-  if (!servo.getVinLimits(SERVO_ID, minVoltage, maxVoltage)) {
-    Serial.println(F("Error reading voltage limits!"));
-    readErrors++;
+  // --- Configuration Limits & Offsets ---
+  int8_t offset = myServo.getAngleOffset(id);
+  if (offset != 127) {
+    Serial.println("Angle Offset: " + String(offset));
   } else {
-    minVin = minVoltage;
-    maxVin = maxVoltage;
-    Serial.print(F("Voltage Limits: "));
-    Serial.print(minVoltage);
-    Serial.print(F(" to "));
-    Serial.print(maxVoltage);
-    Serial.println(F(" mV"));
+    Serial.println("Angle Offset: TIMEOUT/ERROR");
   }
 
-  // Read max temperature limit
-  if (!servo.getTempMaxLimit(SERVO_ID, maxTemp)) {
-    Serial.println(F("Error reading max temperature limit!"));
-    readErrors++;
+  int16_t min_angle, max_angle;
+  if (myServo.getAngleLimits(id, min_angle, max_angle)) {
+    Serial.println("Angle Limits: " + String(min_angle) + " to " + String(max_angle));
   } else {
-    Serial.print(F("Max Temperature: "));
-    Serial.print(maxTemp);
-    Serial.println(F("°C"));
+    Serial.println("Angle Limits: TIMEOUT/ERROR");
   }
 
-  // Read angle offset
-  if (!servo.getAngleOffset(SERVO_ID, angleOffset)) {
-    Serial.println(F("Error reading angle offset!"));
-    readErrors++;
+  int16_t min_vin, max_vin;
+  if (myServo.getVoltageLimits(id, min_vin, max_vin)) {
+    Serial.println("Voltage Limits: " + String(min_vin) + " to " + String(max_vin));
   } else {
-    Serial.print(F("Angle Offset: "));
-    Serial.print(angleOffset);
-    Serial.print(F(" ("));
-    Serial.print(angleOffset * 0.24f, 1);  // Convert to degrees
-    Serial.println(F("°)"));
+    Serial.println("Voltage Limits: TIMEOUT/ERROR");
   }
 
-  // Read LED control
-  if (!servo.getLEDControl(SERVO_ID, ledOn)) {
-    Serial.println(F("Error reading LED control!"));
-    readErrors++;
+  uint8_t max_temp = myServo.getMaxTemperatureLimit(id);
+  if (max_temp != 0) {
+    Serial.println("Max Temp Limit: " + String(max_temp) + " C");
   } else {
-    Serial.print(F("LED: "));
-    Serial.println(ledOn ? "ON" : "OFF");
+    Serial.println("Max Temp Limit: TIMEOUT/ERROR");
   }
 
-  // Read error LED control
-  if (!servo.getLEDErrorControl(SERVO_ID, errorLedOn)) {
-    Serial.println(F("Error reading error LED control!"));
-    readErrors++;
+  // --- LED Status ---
+  uint8_t led_errors = myServo.getLedErrors(id);
+  if (led_errors != 255) {
+    Serial.println("[Currently broken] LED Error Code: " + String(led_errors));
   } else {
-    Serial.print(F("Error LED: "));
-    Serial.println(errorLedOn ? "ENABLED" : "DISABLED");
+    Serial.println("[Currently broken] LED Error Code: TIMEOUT/ERROR");
   }
-
-  // Print summary
-  Serial.println(F("\n=== Summary ==="));
-  if (readErrors > 0) {
-    Serial.print(readErrors);
-    Serial.println(F(" errors occurred while reading values."));
-  } else {
-    Serial.println(F("All values read successfully!"));
-  }
-
-  // Wait before next read
-  Serial.println(F("\nNext update in 2 seconds..."));
-  delay(2000);
 }
