@@ -2,6 +2,18 @@
 
 A modern library for controlling Hiwonder serial bus servos. Supports position control, continuous rotation, parameter configuration, and status monitoring including temperature and voltage readings.
 
+## Breaking Changes / Upgrade Notes
+
+- **Serial initialization is now the user's responsibility.**
+  - `HiBusServo::begin(long speed)` no longer calls `Serial.begin()` / `HardwareSerial::begin()`.
+  - You **must** configure the underlying serial port yourself in `setup()`, for example:
+    ```cpp 
+    Serial2.begin(115200);
+    HiBusServo myServo(Serial2);
+    // myServo.begin(115200); // now effectively a no-op, safe to remove eventually
+    ```
+  - Existing sketches that relied on `HiBusServo::begin()` to initialize the serial port need to be updated accordingly.
+
 ## Requirements
 - Microcontroller with multiple hardware serial ports (e.g., Arduino Mega, ESP32, or Raspberry Pi Pico)
 - [Hiwonder BusLinker (also known as Hiwonder TTL / USB Debugging Board)](https://www.hiwonder.com/collections/servo-controller/products/hiwonder-ttl-usb-debugging-board)

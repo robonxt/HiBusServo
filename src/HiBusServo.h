@@ -3,7 +3,10 @@
 #include "Arduino.h"
 const uint8_t SERVO_MOVE_TIME_WRITE = 1;
 const uint8_t SERVO_MOVE_TIME_READ = 2;
-const uint8_t SERVO_MOVE_STOP = 11;
+const uint8_t SERVO_MOVE_TIME_WAIT_WRITE = 7;
+const uint8_t SERVO_MOVE_TIME_WAIT_READ = 8;
+const uint8_t SERVO_MOVE_START = 11;
+const uint8_t SERVO_MOVE_STOP = 12;
 const uint8_t SERVO_ID_WRITE = 13;
 const uint8_t SERVO_ID_READ = 14;
 const uint8_t SERVO_ANGLE_OFFSET_ADJUST = 17;
@@ -26,6 +29,17 @@ const uint8_t SERVO_LED_CTRL_WRITE = 33;
 const uint8_t SERVO_LED_CTRL_READ = 34;
 const uint8_t SERVO_LED_ERROR_WRITE = 35;
 const uint8_t SERVO_LED_ERROR_READ = 36;
+
+// Error constants (maintain compatibility with existing magic numbers)
+const int SERVO_ERROR_TIMEOUT = -1;
+const float SERVO_POSITION_INVALID = -999.0f;
+const uint8_t SERVO_OFFSET_INVALID = 127;
+const uint8_t SERVO_ID_INVALID = 255;
+
+// Broadcast ID for multi-servo operations
+const uint8_t BROADCAST_ID = 254;
+
+
 class HiBusServo {
 public:
   HiBusServo(HardwareSerial& serial);
@@ -58,8 +72,29 @@ public:
   bool isMotorOn(uint8_t id);
   void ledOn(uint8_t id);
   void ledOff(uint8_t id);
-  void setLedErrors(uint8_t id, uint8_t error);  // broken?
-  uint8_t getLedErrors(uint8_t id);              // broken?
+  void setLedErrors(uint8_t id, uint8_t error);
+  uint8_t getLedErrors(uint8_t id);
+  
+  // Broadcast commands (ID 254) for synchronized multi-servo operations
+  void broadcastMove(int16_t position, uint16_t time);
+  void broadcastMoveDegrees(float degrees, uint16_t time);
+  void broadcastStop();
+  void broadcastLedOn();
+  void broadcastLedOff();
+  
+  // Wait-based movement commands for synchronized multi-servo operations
+  void moveWait(uint8_t id, int16_t position, uint16_t time);
+  void moveWaitDegrees(uint8_t id, float degrees, uint16_t time);
+  void startMove(uint8_t id = BROADCAST_ID);
+  void stopMove(uint8_t id = BROADCAST_ID);
+  bool readWaitPosition(uint8_t id, int16_t& position, uint16_t& time);
+  bool readWaitPositionInDegrees(uint8_t id, float& degrees, uint16_t& time);
+
+  // API enhancements
+  bool ping(uint8_t id);
+  bool isConnected(uint8_t id);
+  bool moveMultiple(uint8_t* ids, int16_t* positions, uint16_t time, int count);
+  int getLastPacketError() const;
 private:
   HardwareSerial* _serial;
   void sendPacket(uint8_t id, uint8_t command, const uint8_t* params, uint8_t param_len);
@@ -67,5 +102,8 @@ private:
   uint8_t checksum(const uint8_t* buf, int len);
   int16_t _degreesToPosition(float degrees);
   float _positionToDegrees(int16_t position);
+  bool _isValidServoId(uint8_t id);
+  void _validateAngleRange(float& degrees);
+  int _lastPacketError;
 };
 #endif

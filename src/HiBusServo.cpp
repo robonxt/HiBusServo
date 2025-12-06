@@ -1,9 +1,12 @@
 #include "HiBusServo.h"
 HiBusServo::HiBusServo(HardwareSerial& serial) {
   _serial = &serial;
+  _lastPacketError = 0;
 }
 void HiBusServo::begin(long speed) {
-  _serial->begin(speed);
+  // Serial configuration is now the caller's responsibility.
+  // This function is kept for API compatibility but does not modify the HardwareSerial instance.
+  (void)speed;
 }
 void HiBusServo::moveTo(uint8_t id, float degrees, uint16_t time) {
   int16_t position = _degreesToPosition(degrees);
@@ -108,10 +111,6 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
         case 3:
           {
             servo_packet_len = ch;
-            bool is_buggy_command = (command == SERVO_LED_ERROR_READ && servo_packet_len == 4);
-            if (is_buggy_command) {
-              servo_packet_len = 1 + 3;
-            }
             if (servo_packet_len == param_len + 3) {
               checksum_val += ch;
               got_bytes++;
@@ -130,19 +129,30 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
           break;
         default:
           if (got_bytes < (servo_packet_len + 2)) {
-            data[got_bytes - 5] = ch;
-            checksum_val += ch;
-            got_bytes++;
+            // Bounds check: ensure we don't write beyond data buffer
+            int data_index = got_bytes - 5;
+            if (data_index >= 0 && data_index < param_len) {
+              data[data_index] = ch;
+              checksum_val += ch;
+              got_bytes++;
+            } else {
+              // Buffer overflow protection
+              _lastPacketError = SERVO_ERROR_TIMEOUT;
+              return -1;
+            }
           } else {
             if ((uint8_t)ch == (uint8_t)~checksum_val) {
+              _lastPacketError = 0;
               return param_len;
             }
+            _lastPacketError = SERVO_ERROR_TIMEOUT;
             return -1;
           }
           break;
       }
     }
   }
+  _lastPacketError = SERVO_ERROR_TIMEOUT;
   return -1;
 }
 void HiBusServo::move(uint8_t id, int16_t position, uint16_t time) {
@@ -197,6 +207,12 @@ bool HiBusServo::getAngleLimits(uint8_t id, int16_t& minAngle, int16_t& maxAngle
   return false;
 }
 void HiBusServo::setVoltageLimits(uint8_t id, int16_t min_voltage, int16_t max_voltage) {
+  // Clamp to valid range (4500-12000mV per documentation)
+  if (min_voltage < 4500) min_voltage = 4500;
+  if (min_voltage > 12000) min_voltage = 12000;
+  if (max_voltage < 4500) max_voltage = 4500;
+  if (max_voltage > 12000) max_voltage = 12000;
+  
   uint8_t params[4];
   params[0] = lowByte(min_voltage);
   params[1] = highByte(min_voltage);
@@ -289,18 +305,134 @@ void HiBusServo::ledOff(uint8_t id) {
   sendPacket(id, SERVO_LED_CTRL_WRITE, params, 1);
 }
 
-// broken?
 void HiBusServo::setLedErrors(uint8_t id, uint8_t error) {
   uint8_t params[1] = { error };
   sendPacket(id, SERVO_LED_ERROR_WRITE, params, 1);
 }
 
-// broken?
 uint8_t HiBusServo::getLedErrors(uint8_t id) {
   sendPacket(id, SERVO_LED_ERROR_READ, NULL, 0);
   uint8_t data[1];
   if (receivePacket(id, SERVO_LED_ERROR_READ, data, 1) > 0) {
     return data[0];
   }
-  return 255;
+  return SERVO_ID_INVALID;
+}
+
+// Broadcast commands for synchronized multi-servo operations
+void HiBusServo::broadcastMove(int16_t position, uint16_t time) {
+  position = constrain(position, 0, 1000);
+  uint8_t params[4];
+  params[0] = lowByte(position);
+  params[1] = highByte(position);
+  params[2] = lowByte(time);
+  params[3] = highByte(time);
+  sendPacket(BROADCAST_ID, SERVO_MOVE_TIME_WRITE, params, 4);
+}
+
+void HiBusServo::broadcastMoveDegrees(float degrees, uint16_t time) {
+  int16_t position = _degreesToPosition(degrees);
+  broadcastMove(position, time);
+}
+
+void HiBusServo::broadcastStop() {
+  sendPacket(BROADCAST_ID, SERVO_MOVE_STOP, NULL, 0);
+}
+
+void HiBusServo::broadcastLedOn() {
+  uint8_t params[1] = { 1 };
+  sendPacket(BROADCAST_ID, SERVO_LED_CTRL_WRITE, params, 1);
+}
+
+void HiBusServo::broadcastLedOff() {
+  uint8_t params[1] = { 0 };
+  sendPacket(BROADCAST_ID, SERVO_LED_CTRL_WRITE, params, 1);
+}
+
+// Wait-based movement commands for synchronized multi-servo operations
+void HiBusServo::moveWait(uint8_t id, int16_t position, uint16_t time) {
+  position = constrain(position, 0, 1000);
+  uint8_t params[4];
+  params[0] = lowByte(position);
+  params[1] = highByte(position);
+  params[2] = lowByte(time);
+  params[3] = highByte(time);
+  sendPacket(id, SERVO_MOVE_TIME_WAIT_WRITE, params, 4);
+}
+
+void HiBusServo::moveWaitDegrees(uint8_t id, float degrees, uint16_t time) {
+  int16_t position = _degreesToPosition(degrees);
+  moveWait(id, position, time);
+}
+
+void HiBusServo::startMove(uint8_t id) {
+  sendPacket(id, SERVO_MOVE_START, NULL, 0);
+}
+
+void HiBusServo::stopMove(uint8_t id) {
+  sendPacket(id, SERVO_MOVE_STOP, NULL, 0);
+}
+
+bool HiBusServo::readWaitPosition(uint8_t id, int16_t& position, uint16_t& time) {
+  sendPacket(id, SERVO_MOVE_TIME_WAIT_READ, NULL, 0);
+  uint8_t data[4];
+  if (receivePacket(id, SERVO_MOVE_TIME_WAIT_READ, data, 4) > 0) {
+    position = (int16_t)word(data[1], data[0]);
+    time = (uint16_t)word(data[3], data[2]);
+    return true;
+  }
+  return false;
+}
+
+bool HiBusServo::readWaitPositionInDegrees(uint8_t id, float& degrees, uint16_t& time) {
+  int16_t position;
+  if (readWaitPosition(id, position, time)) {
+    degrees = _positionToDegrees(position);
+    return true;
+  }
+  return false;
+}
+
+bool HiBusServo::ping(uint8_t id) {
+  // Use a simple read (position) as a liveness check
+  int16_t pos = getPosition(id);
+  return (pos != SERVO_ERROR_TIMEOUT);
+}
+
+bool HiBusServo::isConnected(uint8_t id) {
+  return ping(id);
+}
+
+bool HiBusServo::moveMultiple(uint8_t* ids, int16_t* positions, uint16_t time, int count) {
+  if (!ids || !positions || count <= 0) {
+    return false;
+  }
+  bool allValid = true;
+  for (int i = 0; i < count; ++i) {
+    uint8_t id = ids[i];
+    if (!_isValidServoId(id)) {
+      allValid = false;
+      continue;
+    }
+    moveWait(id, positions[i], time);
+  }
+  // Trigger all queued movements (broadcast start)
+  startMove(BROADCAST_ID);
+  return allValid;
+}
+
+int HiBusServo::getLastPacketError() const {
+  return _lastPacketError;
+}
+
+bool HiBusServo::_isValidServoId(uint8_t id) {
+  return (id >= 0 && id <= 253); // 254 is broadcast, handled separately
+}
+
+void HiBusServo::_validateAngleRange(float& degrees) {
+  if (degrees < -120.0f) {
+    degrees = -120.0f;
+  } else if (degrees > 120.0f) {
+    degrees = 120.0f;
+  }
 }
