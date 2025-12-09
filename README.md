@@ -4,7 +4,7 @@ A modern library for controlling Hiwonder serial bus servos. Supports position c
 
 ## Breaking Changes / Upgrade Notes
 
-- **Serial initialization is now the user's responsibility.**
+- **[AS OF v0.0.4] Serial initialization is now the user's responsibility.**
   - `HiBusServo::begin(long speed)` no longer calls `Serial.begin()` / `HardwareSerial::begin()`.
   - You **must** configure the underlying serial port yourself in `setup()`, for example:
     ```cpp 
@@ -13,6 +13,9 @@ A modern library for controlling Hiwonder serial bus servos. Supports position c
     // myServo.begin(115200); // now effectively a no-op, safe to remove eventually
     ```
   - Existing sketches that relied on `HiBusServo::begin()` to initialize the serial port need to be updated accordingly.
+
+## Features
+- TBD
 
 ## Requirements
 - Microcontroller with multiple hardware serial ports (e.g., Arduino Mega, ESP32, or Raspberry Pi Pico)
@@ -24,6 +27,12 @@ A modern library for controlling Hiwonder serial bus servos. Supports position c
 - Connect servos to the BusLinker's servo ports.
 - Provide an appropriate power supply to the BusLinker/servos (typically 6V to 8.4V).
 - Ensure a common ground between the microcontroller and BusLinker power supply.
+
+## Error handling
+- TBD
+
+## Documentation
+- See `extras/` for official and cleaned-up protocol documentation for Hiwonder/Lewansoul bus servos and the BusLinker / TTL Debug Board.
 
 ## Credits
 Created by [robonxt](https://github.com/robonxt)
