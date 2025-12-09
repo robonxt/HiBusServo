@@ -14,7 +14,7 @@ void HiBusServo::moveTo(uint8_t id, float degrees, uint16_t time) {
 }
 float HiBusServo::getPositionInDegrees(uint8_t id) {
   int16_t position = getPosition(id);
-  if (position == -1) return -999.0;
+  if (position == SERVO_POSITION_INVALID_RAW) return SERVO_POSITION_INVALID;
   return _positionToDegrees(position);
 }
 void HiBusServo::setAngleLimitsInDegrees(uint8_t id, float minDegrees, float maxDegrees) {
@@ -67,7 +67,7 @@ void HiBusServo::sendPacket(uint8_t id, uint8_t command, const uint8_t* params, 
   while (_serial->available()) {
     _serial->read();
   }
-  uint8_t tx_buf[10];
+  uint8_t tx_buf[32];
   tx_buf[0] = 0x55;
   tx_buf[1] = 0x55;
   tx_buf[2] = id;
@@ -81,14 +81,12 @@ void HiBusServo::sendPacket(uint8_t id, uint8_t command, const uint8_t* params, 
   _serial->flush();
 }
 int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int param_len) {
-  const int SERVO_PROCESSING_DELAY_MS = 8;
-  int expected_packet_len = param_len + 6;
-  unsigned long timeout_ms = expected_packet_len + SERVO_PROCESSING_DELAY_MS;
+  const unsigned long RESPONSE_TIMEOUT_MS = 20;
   unsigned long start_time = millis();
   int got_bytes = 0;
   int servo_packet_len = 0;
   uint8_t checksum_val = 0;
-  while (millis() - start_time < timeout_ms) {
+  while (millis() - start_time < RESPONSE_TIMEOUT_MS) {
     if (_serial->available()) {
       uint8_t ch = _serial->read();
       switch (got_bytes) {
@@ -98,6 +96,8 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
             got_bytes++;
           } else {
             got_bytes = 0;
+            checksum_val = 0;
+            servo_packet_len = 0;
           }
           break;
         case 2:
@@ -106,6 +106,8 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
             got_bytes++;
           } else {
             got_bytes = 0;
+            checksum_val = 0;
+            servo_packet_len = 0;
           }
           break;
         case 3:
@@ -116,6 +118,8 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
               got_bytes++;
             } else {
               got_bytes = 0;
+              checksum_val = 0;
+              servo_packet_len = 0;
             }
             break;
           }
@@ -125,6 +129,8 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
             got_bytes++;
           } else {
             got_bytes = 0;
+            checksum_val = 0;
+            servo_packet_len = 0;
           }
           break;
         default:
@@ -137,7 +143,7 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
               got_bytes++;
             } else {
               // Buffer overflow protection
-              _lastPacketError = SERVO_ERROR_TIMEOUT;
+              _lastPacketError = SERVO_ERROR_OVERFLOW;
               return -1;
             }
           } else {
@@ -145,8 +151,9 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
               _lastPacketError = 0;
               return param_len;
             }
-            _lastPacketError = SERVO_ERROR_TIMEOUT;
-            return -1;
+            got_bytes = 0;
+            checksum_val = 0;
+            servo_packet_len = 0;
           }
           break;
       }
@@ -265,7 +272,7 @@ int16_t HiBusServo::getPosition(uint8_t id) {
   if (receivePacket(id, SERVO_POS_READ, data, 2) > 0) {
     return (int16_t)word(data[1], data[0]);
   }
-  return -1;
+  return SERVO_POSITION_INVALID_RAW;
 }
 void HiBusServo::setServoMode(uint8_t id) {
   uint8_t params[4] = { 0, 0, 0, 0 };
@@ -396,7 +403,7 @@ bool HiBusServo::readWaitPositionInDegrees(uint8_t id, float& degrees, uint16_t&
 bool HiBusServo::ping(uint8_t id) {
   // Use a simple read (position) as a liveness check
   int16_t pos = getPosition(id);
-  return (pos != SERVO_ERROR_TIMEOUT);
+  return (pos != SERVO_POSITION_INVALID_RAW);
 }
 
 bool HiBusServo::isConnected(uint8_t id) {
