@@ -4,15 +4,14 @@ A modern library for controlling Hiwonder serial bus servos. Supports position c
 
 ## Breaking Changes / Upgrade Notes
 
-- **[AS OF v0.0.4] Serial initialization is now the user's responsibility.**
-  - `HiBusServo::begin(long speed)` no longer calls `Serial.begin()` / `HardwareSerial::begin()`.
-  - You **must** configure the underlying serial port yourself in `setup()`, for example:
-    ```cpp 
+- **[AS OF v0.0.4+] Serial initialization is the user's responsibility.**
+  - `HiBusServo::begin(long speed)` has been **removed** from the library API.
+  - You **must** configure the underlying hardware serial port yourself in `setup()`. For example:
+    ```cpp
     Serial2.begin(115200);
     HiBusServo myServo(Serial2);
-    // myServo.begin(115200); // now effectively a no-op, safe to remove eventually
     ```
-  - Existing sketches that relied on `HiBusServo::begin()` to initialize the serial port need to be updated accordingly.
+  - Existing sketches that relied on `HiBusServo::begin()` must be updated to initialize the serial port directly before constructing `HiBusServo`.
 
 ## Features
 - TBD

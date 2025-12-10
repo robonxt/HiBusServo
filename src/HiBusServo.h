@@ -45,7 +45,6 @@ const uint8_t BROADCAST_ID = 254;
 class HiBusServo {
 public:
   HiBusServo(HardwareSerial& serial);
-  void begin(long speed = 115200);
   void moveTo(uint8_t id, float degrees, uint16_t time = 1000);
   float getPositionInDegrees(uint8_t id);
   void setAngleLimitsInDegrees(uint8_t id, float minDegrees, float maxDegrees);
@@ -93,7 +92,6 @@ public:
   bool readWaitPositionInDegrees(uint8_t id, float& degrees, uint16_t& time);
 
   // API enhancements
-  bool ping(uint8_t id);
   bool isConnected(uint8_t id);
   bool moveMultiple(uint8_t* ids, int16_t* positions, uint16_t time, int count);
   int getLastPacketError() const;

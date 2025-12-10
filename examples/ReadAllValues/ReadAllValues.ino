@@ -5,7 +5,7 @@ const uint8_t SERVO_ID = 1;
 
 void setup() {
   Serial.begin(115200);
-  myServo.begin(115200);
+  Serial2.begin(115200);
   delay(2000);
   Serial.println("=== HiBusServo Comprehensive Test ===");
   Serial.println("Testing all read functions and error handling");
@@ -23,9 +23,12 @@ void loop() {
 }
 
 void printAllServoData(uint8_t id) {
+  bool connected = myServo.isConnected(id);
+  Serial.println(String("Connected: ") + (connected ? "YES" : "NO"));
+
   Serial.println("--- Position & Movement ---");
   int16_t pos_raw = myServo.getPosition(id);
-  if (pos_raw != SERVO_ERROR_TIMEOUT) {
+  if (pos_raw != SERVO_POSITION_INVALID_RAW) {
     Serial.println("Position (raw): " + String(pos_raw));
   } else {
     Serial.println("Position (raw): TIMEOUT/ERROR");
@@ -121,7 +124,7 @@ void testErrorConstants() {
   Serial.println("SERVO_ID_INVALID = " + String(SERVO_ID_INVALID));
   
   // Test invalid servo ID (should fail gracefully)
-  Serial.println("\nTesting invalid servo ID (254):");
-  int16_t invalid_pos = myServo.getPosition(254);
+  Serial.println("\nTesting invalid servo ID (" + String(BROADCAST_ID) + "):");
+  int16_t invalid_pos = myServo.getPosition(BROADCAST_ID);
   Serial.println("Invalid ID position result: " + String(invalid_pos));
 }
