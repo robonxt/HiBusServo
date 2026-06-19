@@ -157,9 +157,8 @@ int HiBusServo::receivePacket(uint8_t id, uint8_t command, uint8_t* data, int pa
               _lastPacketError = 0;
               return param_len;
             }
-            got_bytes = 0;
-            checksum_val = 0;
-            servo_packet_len = 0;
+            _lastPacketError = SERVO_ERROR_CHECKSUM;
+            return -1;
           }
           break;
       }
@@ -429,10 +428,15 @@ bool HiBusServo::readWaitPositionInDegrees(uint8_t id, float& degrees, uint16_t&
 }
 
 bool HiBusServo::moveMultiple(uint8_t* ids, int16_t* positions, uint16_t time, int count) {
+  return moveMultiple((const uint8_t*)ids, (const int16_t*)positions, time, count);
+}
+
+bool HiBusServo::moveMultiple(const uint8_t* ids, const int16_t* positions, uint16_t time, int count) {
   if (!ids || !positions || count <= 0) {
     return false;
   }
   bool allValid = true;
+  bool anyQueued = false;
   for (int i = 0; i < count; ++i) {
     uint8_t id = ids[i];
     if (!_isValidServoId(id)) {
@@ -440,9 +444,11 @@ bool HiBusServo::moveMultiple(uint8_t* ids, int16_t* positions, uint16_t time, i
       continue;
     }
     moveWait(id, positions[i], time);
+    anyQueued = true;
   }
-  // Trigger all queued movements (broadcast start)
-  startMove(BROADCAST_ID);
+  if (anyQueued) {
+    startMove(BROADCAST_ID);
+  }
   return allValid;
 }
 
@@ -452,13 +458,13 @@ int HiBusServo::getLastPacketError() const {
 
 bool HiBusServo::isConnected(uint8_t id) {
   // Determine connectivity by attempting to read the servo's supply voltage.
-  // If getVoltage returns SERVO_ERROR_TIMEOUT, assume the servo is not responding.
-  int16_t vin = getVoltage(id);
-  return (vin != SERVO_ERROR_TIMEOUT);
+  // Use packet status instead of voltage payload so all receive errors count as disconnected.
+  getVoltage(id);
+  return _lastPacketError == 0;
 }
 
 bool HiBusServo::_isValidServoId(uint8_t id) {
-  return (id >= 0 && id <= 253);  // 254 is broadcast, handled separately
+  return id <= 253;  // 254 is broadcast, handled separately
 }
 
 void HiBusServo::_validateAngleRange(float& degrees) {

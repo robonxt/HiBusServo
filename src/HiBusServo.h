@@ -33,6 +33,7 @@ const uint8_t SERVO_LED_ERROR_READ = 36;
 // Error constants (maintain compatibility with existing magic numbers)
 const int SERVO_ERROR_TIMEOUT = -1;
 const int SERVO_ERROR_OVERFLOW = -2;
+const int SERVO_ERROR_CHECKSUM = -3;
 const int16_t SERVO_POSITION_INVALID_RAW = -32768;
 const float SERVO_POSITION_INVALID = -999.0f;
 const uint8_t SERVO_OFFSET_INVALID = 127;
@@ -94,6 +95,7 @@ public:
   // API enhancements
   bool isConnected(uint8_t id);
   bool moveMultiple(uint8_t* ids, int16_t* positions, uint16_t time, int count);
+  bool moveMultiple(const uint8_t* ids, const int16_t* positions, uint16_t time, int count);
   int getLastPacketError() const;
 private:
   HardwareSerial* _serial;
