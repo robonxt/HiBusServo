@@ -52,7 +52,7 @@ int8_t HiBusServo::getAngleOffset(uint8_t id) {
 }
 
 int16_t HiBusServo::_degreesToPosition(float degrees) {
-  degrees = constrain(degrees, -120.0, 120.0);
+  _validateAngleRange(degrees);
   return (int16_t)((degrees * (500.0 / 120.0)) + 500.0);
 }
 
